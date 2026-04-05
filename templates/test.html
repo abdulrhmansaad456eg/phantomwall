@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ i18n.get('app_name') }} - {{ i18n.get('nav_test') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">PW</span>
+            <span class="brand-text">{{ i18n.get('app_name') }}</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('dashboard') }}">{{ i18n.get('nav_dashboard') }}</a></li>
+            <li><a href="{{ url_for('logs') }}">{{ i18n.get('nav_logs') }}</a></li>
+            <li><a href="{{ url_for('test_page') }}" class="active">{{ i18n.get('nav_test') }}</a></li>
+            <li><a href="{{ url_for('settings') }}">{{ i18n.get('nav_settings') }}</a></li>
+            <li><a href="{{ url_for('about') }}">{{ i18n.get('nav_about') }}</a></li>
+        </ul>
+        <div class="language-selector">
+            <select id="language-select" onchange="changeLanguage(this.value)">
+                <option value="en" {% if locale == 'en' %}selected{% endif %}>English</option>
+                <option value="ko" {% if locale == 'ko' %}selected{% endif %}>한국어</option>
+                <option value="ar" {% if locale == 'ar' %}selected{% endif %}>العربية</option>
+            </select>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>{{ i18n.get('test_title') }}</h1>
+            <p>{{ i18n.get('test_description') }}</p>
+        </header>
+
+        <section class="test-section">
+            <div class="test-form">
+                <div class="form-group">
+                    <label>{{ i18n.get('test_url') }}</label>
+                    <input type="text" id="test-url" value="/backend/login" placeholder="/path">
+                </div>
+                
+                <div class="form-group">
+                    <label>{{ i18n.get('test_method') }}</label>
+                    <select id="test-method">
+                        <option value="GET">GET</option>
+                        <option value="POST" selected>POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>{{ i18n.get('test_payload') }}</label>
+                    <textarea id="test-payload" rows="6" placeholder="username=admin&password=test123"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>{{ i18n.get('test_headers') }}</label>
+                    <textarea id="test-headers" rows="3" placeholder='Content-Type: application/x-www-form-urlencoded'></textarea>
+                </div>
+                
+                <button class="btn btn-primary" onclick="sendTest()">{{ i18n.get('btn_test') }}</button>
+                <button class="btn btn-secondary" onclick="clearForm()">{{ i18n.get('btn_clear') }}</button>
+            </div>
+            
+            <div class="test-result" id="test-result">
+                <h3>{{ i18n.get('test_result') }}</h3>
+                <div class="result-placeholder">Send a request to see results</div>
+            </div>
+        </section>
+
+        <section class="attack-presets">
+            <h3>Quick Test Presets</h3>
+            <div class="preset-grid">
+                <button class="preset-btn" onclick="loadPreset('sqli')">
+                    <strong>{{ i18n.get('attack_sqli') }}</strong>
+                    <small>SQL Injection test</small>
+                </button>
+                <button class="preset-btn" onclick="loadPreset('xss')">
+                    <strong>{{ i18n.get('attack_xss') }}</strong>
+                    <small>Cross-site scripting test</small>
+                </button>
+                <button class="preset-btn" onclick="loadPreset('cmd')">
+                    <strong>{{ i18n.get('attack_cmd') }}</strong>
+                    <small>Command injection test</small>
+                </button>
+                <button class="preset-btn" onclick="loadPreset('path')">
+                    <strong>{{ i18n.get('attack_path') }}</strong>
+                    <small>Path traversal test</small>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>{{ i18n.get('footer_text') }}</p>
+    </footer>
+
+    <script>
+        const presets = {
+            sqli: {
+                url: '/backend/login',
+                method: 'POST',
+                payload: "username=admin' OR '1'='1' --&password=anything",
+                headers: 'Content-Type: application/x-www-form-urlencoded'
+            },
+            xss: {
+                url: '/backend/search?q=<script>alert("xss")</script>',
+                method: 'GET',
+                payload: '',
+                headers: ''
+            },
+            cmd: {
+                url: '/backend/cmd',
+                method: 'POST',
+                payload: 'cmd=cat /etc/passwd; rm -rf /',
+                headers: 'Content-Type: application/x-www-form-urlencoded'
+            },
+            path: {
+                url: '/backend/download?file=../../../etc/passwd',
+                method: 'GET',
+                payload: '',
+                headers: ''
+            }
+        };
+        
+        function loadPreset(type) {
+            const p = presets[type];
+            document.getElementById('test-url').value = p.url;
+            document.getElementById('test-method').value = p.method;
+            document.getElementById('test-payload').value = p.payload;
+            document.getElementById('test-headers').value = p.headers;
+        }
+        
+        function sendTest() {
+            const url = document.getElementById('test-url').value;
+            const method = document.getElementById('test-method').value;
+            const payload = document.getElementById('test-payload').value;
+            const headersText = document.getElementById('test-headers').value;
+            
+            const headers = {};
+            if (headersText) {
+                headersText.split('\n').forEach(line => {
+                    const [key, value] = line.split(':').map(s => s.trim());
+                    if (key && value) headers[key] = value;
+                });
+            }
+            
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '<div class="loading">Testing...</div>';
+            
+            fetch('/api/test', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url, method, payload, headers})
+            })
+            .then(r => r.json())
+            .then(data => {
+                const statusClass = data.threat_detected ? 'threat' : 'clean';
+                const statusText = data.threat_detected ? 'Threat Detected!' : 'Clean';
+                
+                resultDiv.innerHTML = `
+                    <h3>{{ i18n.get('test_result') }}</h3>
+                    <div class="result-box ${statusClass}">
+                        <div class="result-status">${statusText}</div>
+                        <div class="result-details">
+                            <p><strong>Request ID:</strong> ${data.request_id}</p>
+                            <p><strong>Status Code:</strong> ${data.status_code}</p>
+                            <p><strong>Message:</strong> ${data.message}</p>
+                            ${data.attack_type ? `<p><strong>Attack Type:</strong> ${data.attack_type}</p>` : ''}
+                            ${data.threat_level ? `<p><strong>Threat Level:</strong> ${data.threat_level}</p>` : ''}
+                            ${data.rule_triggered ? `<p><strong>Rule Triggered:</strong> ${data.rule_triggered}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        function clearForm() {
+            document.getElementById('test-url').value = '';
+            document.getElementById('test-payload').value = '';
+            document.getElementById('test-headers').value = '';
+            document.getElementById('test-result').innerHTML = `
+                <h3>{{ i18n.get('test_result') }}</h3>
+                <div class="result-placeholder">Send a request to see results</div>
+            `;
+        }
+        
+        function changeLanguage(lang) {
+            fetch('/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `language=${lang}&enabled=on&blocking_mode=on&sensitivity=medium&rate_limit=100`
+            }).then(() => location.reload());
+        }
+    </script>
+</body>
+</html>

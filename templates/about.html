@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ i18n.get('app_name') }} - {{ i18n.get('nav_about') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">PW</span>
+            <span class="brand-text">{{ i18n.get('app_name') }}</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('dashboard') }}">{{ i18n.get('nav_dashboard') }}</a></li>
+            <li><a href="{{ url_for('logs') }}">{{ i18n.get('nav_logs') }}</a></li>
+            <li><a href="{{ url_for('test_page') }}">{{ i18n.get('nav_test') }}</a></li>
+            <li><a href="{{ url_for('settings') }}">{{ i18n.get('nav_settings') }}</a></li>
+            <li><a href="{{ url_for('about') }}" class="active">{{ i18n.get('nav_about') }}</a></li>
+        </ul>
+        <div class="language-selector">
+            <select id="language-select" onchange="changeLanguage(this.value)">
+                <option value="en" {% if locale == 'en' %}selected{% endif %}>English</option>
+                <option value="ko" {% if locale == 'ko' %}selected{% endif %}>한국어</option>
+                <option value="ar" {% if locale == 'ar' %}selected{% endif %}>العربية</option>
+            </select>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>{{ i18n.get('about_title') }}</h1>
+        </header>
+
+        <section class="about-section">
+            <div class="about-logo">
+                <span class="logo-large">PW</span>
+                <h2>PhantomWall</h2>
+                <p class="version">{{ i18n.get('about_version') }} 1.0.0</p>
+            </div>
+            
+            <div class="about-description">
+                <p>{{ i18n.get('about_description') }}</p>
+            </div>
+            
+            <div class="features-grid">
+                <h3>{{ i18n.get('about_features') }}</h3>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <span class="icon">🛡️</span>
+                        <div>
+                            <strong>Attack Detection</strong>
+                            <p>SQL Injection, XSS, CSRF, Command Injection, Path Traversal, File Inclusion</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <span class="icon">📊</span>
+                        <div>
+                            <strong>Real-time Monitoring</strong>
+                            <p>Live dashboard with traffic analysis and threat visualization</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <span class="icon">📝</span>
+                        <div>
+                            <strong>Comprehensive Logging</strong>
+                            <p>Detailed event logs with export capabilities</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <span class="icon">⚙️</span>
+                        <div>
+                            <strong>Configurable Rules</strong>
+                            <p>Adjustable sensitivity and custom rule support</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <span class="icon">🌍</span>
+                        <div>
+                            <strong>Multilingual Support</strong>
+                            <p>English, Korean (한국어), and Arabic (العربية)</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <span class="icon">🧪</span>
+                        <div>
+                            <strong>Testing Environment</strong>
+                            <p>Simulated backend for safe attack testing</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tech-stack">
+                <h3>Technology Stack</h3>
+                <div class="tech-tags">
+                    <span class="tech-tag">Python 3</span>
+                    <span class="tech-tag">Flask</span>
+                    <span class="tech-tag">SQLite</span>
+                    <span class="tech-tag">Chart.js</span>
+                    <span class="tech-tag">Regex</span>
+                </div>
+            </div>
+            
+            <div class="attack-types-info">
+                <h3>Detected Attack Types</h3>
+                <table class="attack-info-table">
+                    <thead>
+                        <tr>
+                            <th>Attack Type</th>
+                            <th>Description</th>
+                            <th>Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>SQL Injection</td>
+                            <td>Malicious SQL commands in input fields</td>
+                            <td><span class="badge level-critical">Critical</span></td>
+                        </tr>
+                        <tr>
+                            <td>XSS</td>
+                            <td>Cross-site scripting attacks</td>
+                            <td><span class="badge level-high">High</span></td>
+                        </tr>
+                        <tr>
+                            <td>Command Injection</td>
+                            <td>OS command execution attempts</td>
+                            <td><span class="badge level-critical">Critical</span></td>
+                        </tr>
+                        <tr>
+                            <td>Path Traversal</td>
+                            <td>File system access attempts</td>
+                            <td><span class="badge level-high">High</span></td>
+                        </tr>
+                        <tr>
+                            <td>CSRF</td>
+                            <td>Cross-site request forgery</td>
+                            <td><span class="badge level-medium">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td>File Inclusion</td>
+                            <td>LFI/RFI attacks</td>
+                            <td><span class="badge level-high">High</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>{{ i18n.get('footer_text') }}</p>
+    </footer>
+
+    <script>
+        function changeLanguage(lang) {
+            fetch('/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `language=${lang}&enabled=on&blocking_mode=on&sensitivity=medium&rate_limit=100`
+            }).then(() => location.reload());
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ i18n.get('app_name') }} - {{ i18n.get('nav_settings') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">PW</span>
+            <span class="brand-text">{{ i18n.get('app_name') }}</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('dashboard') }}">{{ i18n.get('nav_dashboard') }}</a></li>
+            <li><a href="{{ url_for('logs') }}">{{ i18n.get('nav_logs') }}</a></li>
+            <li><a href="{{ url_for('test_page') }}">{{ i18n.get('nav_test') }}</a></li>
+            <li><a href="{{ url_for('settings') }}" class="active">{{ i18n.get('nav_settings') }}</a></li>
+            <li><a href="{{ url_for('about') }}">{{ i18n.get('nav_about') }}</a></li>
+        </ul>
+        <div class="language-selector">
+            <select id="language-select" onchange="changeLanguage(this.value)">
+                <option value="en" {% if locale == 'en' %}selected{% endif %}>English</option>
+                <option value="ko" {% if locale == 'ko' %}selected{% endif %}>한국어</option>
+                <option value="ar" {% if locale == 'ar' %}selected{% endif %}>العربية</option>
+            </select>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>{{ i18n.get('settings_title') }}</h1>
+        </header>
+
+        {% if saved %}
+        <div class="alert alert-success">Settings saved successfully!</div>
+        {% endif %}
+
+        <form method="POST" class="settings-form">
+            <section class="settings-section">
+                <h2>{{ i18n.get('settings_general') }}</h2>
+                
+                <div class="form-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" name="enabled" {% if config.enabled %}checked{% endif %}>
+                        <span class="toggle"></span>
+                        {{ i18n.get('setting_enabled') }}
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" name="blocking_mode" {% if config.blocking_mode %}checked{% endif %}>
+                        <span class="toggle"></span>
+                        {{ i18n.get('setting_blocking') }}
+                        <small>{{ i18n.get('monitoring_mode') if not config.blocking_mode else i18n.get('blocking_mode_on') }}</small>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" name="enable_logging" {% if config.enable_logging %}checked{% endif %}>
+                        <span class="toggle"></span>
+                        {{ i18n.get('logs_title') }}
+                    </label>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sensitivity">{{ i18n.get('setting_sensitivity') }}</label>
+                        <select name="sensitivity" id="sensitivity">
+                            <option value="low" {% if config.sensitivity == 'low' %}selected{% endif %}>{{ i18n.get('sensitivity_low') }}</option>
+                            <option value="medium" {% if config.sensitivity == 'medium' %}selected{% endif %}>{{ i18n.get('sensitivity_medium') }}</option>
+                            <option value="high" {% if config.sensitivity == 'high' %}selected{% endif %}>{{ i18n.get('sensitivity_high') }}</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rate_limit">{{ i18n.get('setting_rate_limit') }}</label>
+                        <input type="number" name="rate_limit" id="rate_limit" value="{{ config.rate_limit }}" min="10" max="10000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="language">{{ i18n.get('setting_language') }}</label>
+                        <select name="language" id="language">
+                            <option value="en" {% if config.language == 'en' %}selected{% endif %}>English</option>
+                            <option value="ko" {% if config.language == 'ko' %}selected{% endif %}>한국어</option>
+                            <option value="ar" {% if config.language == 'ar' %}selected{% endif %}>العربية</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="log_retention_days">Log Retention (days)</label>
+                        <input type="number" name="log_retention_days" id="log_retention_days" value="{{ config.log_retention_days }}" min="1" max="365">
+                    </div>
+                </div>
+            </section>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{{ i18n.get('btn_save') }}</button>
+                <button type="button" class="btn btn-secondary" onclick="resetConfig()">{{ i18n.get('btn_reset') }}</button>
+            </div>
+        </form>
+
+        <section class="settings-section">
+            <h2>{{ i18n.get('ip_whitelist') }}</h2>
+            <div class="ip-list-manager">
+                <div class="ip-input-group">
+                    <input type="text" id="whitelist-ip" placeholder="{{ i18n.get('add_ip_placeholder') }}">
+                    <button class="btn btn-primary" onclick="addToWhitelist()">{{ i18n.get('btn_add') }}</button>
+                </div>
+                <ul class="ip-list" id="whitelist">
+                    {% for ip in config.whitelist %}
+                    <li>
+                        <span>{{ ip }}</span>
+                        <button class="btn btn-sm btn-danger" onclick="removeFromWhitelist('{{ ip }}')">{{ i18n.get('btn_remove') }}</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h2>{{ i18n.get('ip_blacklist') }}</h2>
+            <div class="ip-list-manager">
+                <div class="ip-input-group">
+                    <input type="text" id="blacklist-ip" placeholder="{{ i18n.get('add_ip_placeholder') }}">
+                    <button class="btn btn-primary" onclick="addToBlacklist()">{{ i18n.get('btn_add') }}</button>
+                </div>
+                <ul class="ip-list" id="blacklist">
+                    {% for ip in config.blacklist %}
+                    <li>
+                        <span>{{ ip }}</span>
+                        <button class="btn btn-sm btn-danger" onclick="removeFromBlacklist('{{ ip }}')">{{ i18n.get('btn_remove') }}</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h2>Log Management</h2>
+            <div class="form-group">
+                <button class="btn btn-warning" onclick="clearOldLogs()">Clear Logs Older Than {{ config.log_retention_days }} Days</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>{{ i18n.get('footer_text') }}</p>
+    </footer>
+
+    <script>
+        function changeLanguage(lang) {
+            document.getElementById('language').value = lang;
+        }
+        
+        function resetConfig() {
+            if (confirm('Reset all settings to defaults?')) {
+                fetch('/api/config/reset', {method: 'POST'})
+                    .then(() => location.reload());
+            }
+        }
+        
+        function addToWhitelist() {
+            const ip = document.getElementById('whitelist-ip').value;
+            if (ip) {
+                fetch('/api/whitelist', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ip: ip})
+                }).then(() => location.reload());
+            }
+        }
+        
+        function removeFromWhitelist(ip) {
+            fetch('/api/whitelist', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ip: ip})
+            }).then(() => location.reload());
+        }
+        
+        function addToBlacklist() {
+            const ip = document.getElementById('blacklist-ip').value;
+            if (ip) {
+                fetch('/api/blacklist', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ip: ip})
+                }).then(() => location.reload());
+            }
+        }
+        
+        function removeFromBlacklist(ip) {
+            fetch('/api/blacklist', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ip: ip})
+            }).then(() => location.reload());
+        }
+        
+        function clearOldLogs() {
+            if (confirm('Clear old logs?')) {
+                fetch('/api/clear-logs', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({days: {{ config.log_retention_days }}})
+                }).then(r => r.json()).then(data => {
+                    alert(`Deleted ${data.deleted} log entries`);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

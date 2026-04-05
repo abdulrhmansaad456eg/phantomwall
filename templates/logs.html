@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ i18n.get('app_name') }} - {{ i18n.get('nav_logs') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">PW</span>
+            <span class="brand-text">{{ i18n.get('app_name') }}</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('dashboard') }}">{{ i18n.get('nav_dashboard') }}</a></li>
+            <li><a href="{{ url_for('logs') }}" class="active">{{ i18n.get('nav_logs') }}</a></li>
+            <li><a href="{{ url_for('test_page') }}">{{ i18n.get('nav_test') }}</a></li>
+            <li><a href="{{ url_for('settings') }}">{{ i18n.get('nav_settings') }}</a></li>
+            <li><a href="{{ url_for('about') }}">{{ i18n.get('nav_about') }}</a></li>
+        </ul>
+        <div class="language-selector">
+            <select id="language-select" onchange="changeLanguage(this.value)">
+                <option value="en" {% if locale == 'en' %}selected{% endif %}>English</option>
+                <option value="ko" {% if locale == 'ko' %}selected{% endif %}>한국어</option>
+                <option value="ar" {% if locale == 'ar' %}selected{% endif %}>العربية</option>
+            </select>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>{{ i18n.get('logs_title') }}</h1>
+            <div class="header-actions">
+                <a href="/api/logs/export?format=json" class="btn btn-secondary">{{ i18n.get('logs_export') }} (JSON)</a>
+                <a href="/api/logs/export?format=csv" class="btn btn-secondary">{{ i18n.get('logs_export') }} (CSV)</a>
+            </div>
+        </header>
+
+        <section class="filters-section">
+            <div class="filter-group">
+                <input type="text" id="search-input" placeholder="{{ i18n.get('search_placeholder') }}" value="{{ filters.source_ip }}">
+                <select id="attack-type-filter">
+                    <option value="">{{ i18n.get('filter_all') }}</option>
+                    {% for type, count in distribution.items() %}
+                    <option value="{{ type }}" {% if filters.attack_type == type %}selected{% endif %}>{{ type }} ({{ count }})</option>
+                    {% endfor %}
+                </select>
+                <select id="threat-level-filter">
+                    <option value="">{{ i18n.get('filter_all') }}</option>
+                    <option value="low" {% if filters.threat_level == 'low' %}selected{% endif %}>{{ i18n.get('threat_low') }}</option>
+                    <option value="medium" {% if filters.threat_level == 'medium' %}selected{% endif %}>{{ i18n.get('threat_medium') }}</option>
+                    <option value="high" {% if filters.threat_level == 'high' %}selected{% endif %}>{{ i18n.get('threat_high') }}</option>
+                    <option value="critical" {% if filters.threat_level == 'critical' %}selected{% endif %}>{{ i18n.get('threat_critical') }}</option>
+                </select>
+                <button class="btn btn-primary" onclick="applyFilters()">{{ i18n.get('logs_filter') }}</button>
+                <button class="btn btn-secondary" onclick="clearFilters()">{{ i18n.get('logs_clear') }}</button>
+            </div>
+        </section>
+
+        <section class="logs-table-section">
+            {% if events %}
+            <table class="events-table detailed">
+                <thead>
+                    <tr>
+                        <th>{{ i18n.get('table_timestamp') }}</th>
+                        <th>{{ i18n.get('table_attack_type') }}</th>
+                        <th>{{ i18n.get('table_threat_level') }}</th>
+                        <th>{{ i18n.get('table_source_ip') }}</th>
+                        <th>{{ i18n.get('table_method') }}</th>
+                        <th>{{ i18n.get('table_path') }}</th>
+                        <th>{{ i18n.get('table_action') }}</th>
+                        <th>{{ i18n.get('table_details') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in events %}
+                    <tr class="threat-level-{{ event.threat_level }}">
+                        <td>{{ event.timestamp[:19] }}</td>
+                        <td>{{ event.attack_type }}</td>
+                        <td>
+                            <span class="badge level-{{ event.threat_level }}">
+                                {{ i18n.get('threat_' + event.threat_level, event.threat_level) }}
+                            </span>
+                        </td>
+                        <td>{{ event.source_ip }}</td>
+                        <td>{{ event.method }}</td>
+                        <td>{{ event.path[:50] }}</td>
+                        <td>
+                            <span class="badge action-{{ event.action }}">
+                                {{ i18n.get('action_' + event.action, event.action) }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm" onclick="showDetails({{ event.id }})">{{ i18n.get('table_details') }}</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div class="pagination">
+                {% if page > 1 %}
+                <a href="?page={{ page - 1 }}&attack_type={{ filters.attack_type }}&threat_level={{ filters.threat_level }}&source_ip={{ filters.source_ip }}" class="btn btn-secondary">←</a>
+                {% endif %}
+                <span class="page-info">Page {{ page }}</span>
+                {% if events|length == 50 %}
+                <a href="?page={{ page + 1 }}&attack_type={{ filters.attack_type }}&threat_level={{ filters.threat_level }}&source_ip={{ filters.source_ip }}" class="btn btn-secondary">→</a>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="no-events">{{ i18n.get('no_events') }}</p>
+            {% endif %}
+        </section>
+    </main>
+
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>{{ i18n.get('event_details') }}</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>{{ i18n.get('footer_text') }}</p>
+    </footer>
+
+    <script>
+        function changeLanguage(lang) {
+            fetch('/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `language=${lang}&enabled=on&blocking_mode=on&sensitivity=medium&rate_limit=100`
+            }).then(() => location.reload());
+        }
+        
+        function applyFilters() {
+            const search = document.getElementById('search-input').value;
+            const attackType = document.getElementById('attack-type-filter').value;
+            const threatLevel = document.getElementById('threat-level-filter').value;
+            
+            const params = new URLSearchParams();
+            if (search) params.append('source_ip', search);
+            if (attackType) params.append('attack_type', attackType);
+            if (threatLevel) params.append('threat_level', threatLevel);
+            
+            window.location.href = '/logs?' + params.toString();
+        }
+        
+        function clearFilters() {
+            window.location.href = '/logs';
+        }
+        
+        function showDetails(eventId) {
+            fetch(`/api/event/${eventId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const modalBody = document.getElementById('modal-body');
+                    modalBody.innerHTML = `
+                        <div class="detail-grid">
+                            <div><strong>Request ID:</strong></div><div>${data.request_id}</div>
+                            <div><strong>Timestamp:</strong></div><div>${data.timestamp}</div>
+                            <div><strong>Attack Type:</strong></div><div>${data.attack_type}</div>
+                            <div><strong>Threat Level:</strong></div><div>${data.threat_level}</div>
+                            <div><strong>Source IP:</strong></div><div>${data.source_ip}</div>
+                            <div><strong>Method:</strong></div><div>${data.method}</div>
+                            <div><strong>Path:</strong></div><div>${data.path}</div>
+                            <div><strong>Rule ID:</strong></div><div>${data.rule_id}</div>
+                            <div><strong>User Agent:</strong></div><div>${data.user_agent || 'N/A'}</div>
+                            <div><strong>Payload:</strong></div><div><pre>${data.payload || 'N/A'}</pre></div>
+                        </div>
+                    `;
+                    document.getElementById('detail-modal').style.display = 'block';
+                });
+        }
+        
+        function closeModal() {
+            document.getElementById('detail-modal').style.display = 'none';
+        }
+        
+        window.onclick = function(e) {
+            const modal = document.getElementById('detail-modal');
+            if (e.target == modal) modal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

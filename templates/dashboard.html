@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ i18n.get('app_name') }} - {{ i18n.get('nav_dashboard') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">PW</span>
+            <span class="brand-text">{{ i18n.get('app_name') }}</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('dashboard') }}" class="active">{{ i18n.get('nav_dashboard') }}</a></li>
+            <li><a href="{{ url_for('logs') }}">{{ i18n.get('nav_logs') }}</a></li>
+            <li><a href="{{ url_for('test_page') }}">{{ i18n.get('nav_test') }}</a></li>
+            <li><a href="{{ url_for('settings') }}">{{ i18n.get('nav_settings') }}</a></li>
+            <li><a href="{{ url_for('about') }}">{{ i18n.get('nav_about') }}</a></li>
+        </ul>
+        <div class="language-selector">
+            <select id="language-select" onchange="changeLanguage(this.value)">
+                <option value="en" {% if locale == 'en' %}selected{% endif %}>English</option>
+                <option value="ko" {% if locale == 'ko' %}selected{% endif %}>한국어</option>
+                <option value="ar" {% if locale == 'ar' %}selected{% endif %}>العربية</option>
+            </select>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>{{ i18n.get('dashboard_title') }}</h1>
+            <div class="realtime-badge">
+                <span class="pulse"></span>
+                {{ i18n.get('realtime_updates') }}
+            </div>
+        </header>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon requests">📊</div>
+                <div class="stat-info">
+                    <h3>{{ i18n.get('total_requests') }}</h3>
+                    <p class="stat-value" id="total-requests">{{ stats.total_requests }}</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blocked">🚫</div>
+                <div class="stat-info">
+                    <h3>{{ i18n.get('blocked_requests') }}</h3>
+                    <p class="stat-value" id="blocked-requests">{{ stats.blocked_requests }}</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon threats">⚠️</div>
+                <div class="stat-info">
+                    <h3>{{ i18n.get('threats_detected') }}</h3>
+                    <p class="stat-value" id="threats-detected">{{ stats.detections }}</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon rules">📋</div>
+                <div class="stat-info">
+                    <h3>{{ i18n.get('active_rules') }}</h3>
+                    <p class="stat-value">{{ stats.active_rules }}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="charts-section">
+            <div class="chart-container">
+                <h3>{{ i18n.get('graph_requests') }}</h3>
+                <canvas id="trafficChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>{{ i18n.get('graph_attacks') }}</h3>
+                <canvas id="attacksChart"></canvas>
+            </div>
+        </section>
+
+        <section class="recent-events">
+            <div class="section-header">
+                <h2>{{ i18n.get('dashboard_recent_threats') }}</h2>
+                <a href="{{ url_for('logs') }}" class="view-all">{{ i18n.get('nav_logs') }} →</a>
+            </div>
+            {% if recent_events %}
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th>{{ i18n.get('table_timestamp') }}</th>
+                        <th>{{ i18n.get('table_attack_type') }}</th>
+                        <th>{{ i18n.get('table_threat_level') }}</th>
+                        <th>{{ i18n.get('table_source_ip') }}</th>
+                        <th>{{ i18n.get('table_action') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in recent_events %}
+                    <tr class="threat-level-{{ event.threat_level }}">
+                        <td>{{ event.timestamp[:19] }}</td>
+                        <td>{{ event.attack_type }}</td>
+                        <td>
+                            <span class="badge level-{{ event.threat_level }}">
+                                {{ i18n.get('threat_' + event.threat_level, event.threat_level) }}
+                            </span>
+                        </td>
+                        <td>{{ event.source_ip }}</td>
+                        <td>
+                            <span class="badge action-{{ event.action }}">
+                                {{ i18n.get('action_' + event.action, event.action) }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="no-events">{{ i18n.get('no_events') }}</p>
+            {% endif %}
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>{{ i18n.get('footer_text') }}</p>
+    </footer>
+
+    <script>
+        const timelineData = {{ timeline | tojson }};
+        const attackTypes = {{ attack_types | tojson }};
+        const threatLevels = {{ threat_levels | tojson }};
+        
+        const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+        new Chart(trafficCtx, {
+            type: 'line',
+            data: {
+                labels: timelineData.map(d => d.date),
+                datasets: [{
+                    label: 'Events',
+                    data: timelineData.map(d => d.count),
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+        
+        const attacksCtx = document.getElementById('attacksChart').getContext('2d');
+        new Chart(attacksCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(attackTypes),
+                datasets: [{
+                    data: Object.values(attackTypes),
+                    backgroundColor: ['#e74c3c', '#f39c12', '#9b59b6', '#3498db', '#1abc9c', '#e67e22']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+        
+        function updateStats() {
+            fetch('/api/stats')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('total-requests').textContent = data.total_requests;
+                    document.getElementById('blocked-requests').textContent = data.blocked_requests;
+                    document.getElementById('threats-detected').textContent = data.detections;
+                });
+        }
+        
+        setInterval(updateStats, 5000);
+        
+        function changeLanguage(lang) {
+            fetch('/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `language=${lang}&enabled=on&blocking_mode=on&sensitivity=medium&rate_limit=100`
+            }).then(() => location.reload());
+        }
+    </script>
+</body>
+</html>
