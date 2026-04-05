@@ -248,4 +248,4 @@ Developed as an educational resource for web security training.
 
 ---
 
-**Happy Learning! Stay Secure!**
+**Happy Learning And Stay Secure Thank You**
