@@ -36,10 +36,11 @@ def create_app(config_path: str = "phantomwall.json"):
     def get_i18n():
         return I18n(session.get("locale", "en"))
     
-    def log_request(response):
+    @app.before_request
+    def waf_inspect():
         if request.path.startswith("/static/") or request.path.startswith("/api/"):
-            return response
-        
+            return None
+
         headers = dict(request.headers)
         body = ""
         if request.method in ["POST", "PUT", "PATCH"]:
@@ -47,7 +48,7 @@ def create_app(config_path: str = "phantomwall.json"):
                 body = request.get_data(as_text=True)[:1000]
             except:
                 body = ""
-        
+
         result = core.inspect_request(
             method=request.method,
             path=request.path,
@@ -56,15 +57,18 @@ def create_app(config_path: str = "phantomwall.json"):
             query_string=request.query_string.decode() if request.query_string else "",
             source_ip=request.remote_addr or "127.0.0.1"
         )
-        
+
         if result.event:
             logger.save_event(result.event)
-        
-        return response
-    
-    @app.after_request
-    def after_request(response):
-        return log_request(response)
+
+        if not result.allowed:
+            return jsonify({
+                "error": "Forbidden",
+                "message": result.message,
+                "request_id": result.request_id
+            }), result.status_code
+
+        return None
     
     @app.route("/")
     def index():

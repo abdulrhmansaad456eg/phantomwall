@@ -72,7 +72,7 @@ class WAFTester:
         detected_count = 0
         for method, path, data in payloads:
             response = self.send_request(method, path, data)
-            if response and response.status_code == 403:
+            if response is not None and response.status_code == 403:
                 detected_count += 1
         
         self.record_result("SQL Injection", detected_count > 0, True, 
@@ -91,7 +91,7 @@ class WAFTester:
         detected_count = 0
         for method, path, data in payloads:
             response = self.send_request(method, path, data)
-            if response and response.status_code == 403:
+            if response is not None and response.status_code == 403:
                 detected_count += 1
         
         self.record_result("XSS", detected_count > 0, True,
@@ -110,7 +110,7 @@ class WAFTester:
         detected_count = 0
         for method, path, data in payloads:
             response = self.send_request(method, path, data)
-            if response and response.status_code == 403:
+            if response is not None and response.status_code == 403:
                 detected_count += 1
         
         self.record_result("Command Injection", detected_count > 0, True,
@@ -129,7 +129,7 @@ class WAFTester:
         detected_count = 0
         for method, path, data in payloads:
             response = self.send_request(method, path, data)
-            if response and response.status_code == 403:
+            if response is not None and response.status_code == 403:
                 detected_count += 1
         
         self.record_result("Path Traversal", detected_count > 0, True,
@@ -148,7 +148,7 @@ class WAFTester:
         detected_count = 0
         for method, path, data in payloads:
             response = self.send_request(method, path, data)
-            if response and response.status_code == 403:
+            if response is not None and response.status_code == 403:
                 detected_count += 1
         
         self.record_result("File Inclusion", detected_count > 0, True,
@@ -156,18 +156,19 @@ class WAFTester:
         print()
     
     def test_csrf_protection(self):
-        print("[TEST] CSRF Protection (High Sensitivity Mode)")
-        
+        print("[TEST] CSRF Protection Headers")
+
+        # Requests carrying a CSRF-protection header must pass through
         response = self.send_request(
-            "POST", 
+            "POST",
             "/backend/users",
             {"name": "test"},
-            headers={}
+            headers={"X-Requested-With": "XMLHttpRequest"}
         )
-        
-        detected = response is not None
-        self.record_result("CSRF Check", detected, False,
-                          "CSRF detection depends on sensitivity settings")
+
+        allowed = response is not None and response.status_code != 403
+        self.record_result("CSRF Allowed", allowed, True,
+                          "Requests with CSRF protection headers are allowed")
         print()
     
     def test_rate_limiting(self):
@@ -181,7 +182,7 @@ class WAFTester:
         
         for i in range(request_count):
             response = self.send_request("GET", path)
-            if response and response.status_code == 429:
+            if response is not None and response.status_code == 429:
                 blocked_count += 1
                 break
             time.sleep(0.01)
