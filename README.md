@@ -248,4 +248,4 @@ Developed as an educational resource for web security training.
 
 ---
 
-**Happy Learning And Stay Secure Thank You**
+That's PhantomWall. Questions and suggestions are welcome.
