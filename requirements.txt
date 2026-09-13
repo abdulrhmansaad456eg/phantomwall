@@ -9,5 +9,5 @@ cryptography==41.0.4
 # Data handling
 python-dateutil==2.8.2
 
-# No additional heavy dependencies required - keeping it lightweight for educational use
-# PhantomWall uses only Python standard library + Flask for core functionality
+# Testing
+requests==2.31.0
