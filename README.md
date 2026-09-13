@@ -1,5 +1,8 @@
 # PhantomWall WAF
 
+[![Tests](https://github.com/abdulrhmansaad456eg/phantomwall/actions/workflows/tests.yml/badge.svg)](https://github.com/abdulrhmansaad456eg/phantomwall/actions/workflows/tests.yml)
+
+
 **PhantomWall (PW)** is an educational Web Application Firewall prototype designed for teaching students about HTTP traffic inspection, attack detection, and web security fundamentals.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
